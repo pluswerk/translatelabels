@@ -14,7 +14,7 @@
             <f:for each="{labels}" as="label">
                 <tr data-translatelabels-key="{label.key}">
                     <td style="width:20%; padding-right:20px;">
-                        <a href="{label.linkToBE}" target="backend">{label.identifier}</a>
+                        <span>{label.identifier}</span>
                     </td>
                     <td style="width:50%; padding-right:10px;">
                         <div>
@@ -28,11 +28,6 @@
                             </f:form.button>
                             <div class="status-message translatelabels-status-message"></div>
                         </div>
-                    </td>
-                    <td>
-                        <a class="typo3-adminPanel-btn typo3-adminPanel-btn-default" href="{label.linkToBE}" target="backend">
-                            <f:format.raw>{editIcon}</f:format.raw>
-                        </a>
                     </td>
                 </tr>
             </f:for>
