@@ -22,7 +22,6 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
-use Sitegeist\Translatelabels\Utility\TranslationLabelUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
@@ -88,7 +87,7 @@ class TranslateLabelInfo extends AbstractSubModule implements DataProviderInterf
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         return new ModuleData(
             [
-                'labels' => $GLOBALS['T3_VAR']['ext']['translatelabels']['labels'],
+                'labels' => $GLOBALS['TRANSLATELABELS'],
                 'showTranslateLabels' => $this->configurationService->getConfigurationOption('translatelabels', 'showTranslationLabels'),
                 'editIcon' => $iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render()
             ]

@@ -1,5 +1,5 @@
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Sitegeist\Translatelabels\Controller;
 
@@ -11,7 +11,7 @@ namespace Sitegeist\Translatelabels\Controller;
  * LICENSE file that was distributed with this source code.
  *
  */
-
+use function GuzzleHttp\json_decode;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
 use TYPO3\CMS\Adminpanel\Service\ModuleLoader;
@@ -24,6 +24,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use Sitegeist\Translatelabels\Utility\TranslationLabelUtility;
 
 /**
  * Admin Panel Ajax Controller - Route endpoint for ajax actions
@@ -56,6 +57,7 @@ class AjaxController
      * @var LanguageService
      */
     protected $languageService;
+
     /**
      * @param ConfigurationService $configurationService
      * @param ModuleLoader $moduleLoader
@@ -63,8 +65,8 @@ class AjaxController
     public function __construct(ConfigurationService $configurationService = null, ModuleLoader $moduleLoader = null)
     {
         $this->configurationService = $configurationService
-                                      ??
-                                      GeneralUtility::makeInstance(ConfigurationService::class);
+            ??
+            GeneralUtility::makeInstance(ConfigurationService::class);
         $this->adminPanelModuleConfiguration = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['adminpanel']['modules'] ?? [];
         $this->moduleLoader = $moduleLoader ?? GeneralUtility::makeInstance(ModuleLoader::class);
         $this->languageService = GeneralUtility::makeInstance(LanguageService::class);
@@ -89,19 +91,18 @@ class AjaxController
     public function translateAction(ServerRequestInterface $request): JsonResponse
     {
         try {
-            $data = \GuzzleHttp\json_decode($request->getBody()->getContents());
+            $data = json_decode($request->getBody()->getContents());
             $this->checkPermissions($data);
             $context = GeneralUtility::makeInstance(Context::class);
             $successMessage = $this->languageService->sL('LLL:EXT:translatelabels/Resources/Private/Language/locallang_adminpanel.xlf:sub.module.ajax.success');
             $backendUserId = $context->getPropertyFromAspect('backend.user', 'id');
 
             $translation = $this->findTranslation($data->key, (int)$data->storagePid, (int)$data->sysLanguageUid);
-
             if ($translation !== false) {
                 if ($translation['translation'] !== $data->value) {
                     // translation exists
-                    $this->updateTranslation($translation['uid'], html_entity_decode($data->value));
-                    return new JsonResponse([ 'status' => 'ok', 'message' => $successMessage, 'action' => 'changed', 'uid' => $translation['uid'] ]);
+                    $this->updateTranslation($translation['uid'], TranslationLabelUtility::stripAllTagsButNewlines($data->value));
+                    return new JsonResponse(['status' => 'ok', 'message' => $successMessage, 'action' => 'changed', 'uid' => $translation['uid']]);
                 }
             } else {
                 if ((int)$data->sysLanguageUid !== 0) {
@@ -127,7 +128,7 @@ class AjaxController
                 }
                 // create translation related to l10n_parent
                 $this->insertTranslation([
-                    'translation' => html_entity_decode($data->value),
+                    'translation' => TranslationLabelUtility::stripAllTagsButNewlines($data->value),
                     'labelkey' => $data->key,
                     'pid' => $data->storagePid,
                     'sys_language_uid' => $data->sysLanguageUid,
@@ -138,12 +139,11 @@ class AjaxController
                 ]);
 
                 // no translation record found => create one
-                return new JsonResponse([ 'status' => 'ok', 'message' => $successMessage, 'action' => 'new' ]);
-
+                return new JsonResponse(['status' => 'ok', 'message' => $successMessage, 'action' => 'new']);
             }
-            return new JsonResponse([ 'status' => 'ok', 'message' => $successMessage, 'action' => 'unmodified', 'uid' => $translation['uid'] ]);
+            return new JsonResponse(['status' => 'ok', 'message' => $successMessage, 'action' => 'unmodified', 'uid' => $translation['uid']]);
         } catch (\Exception $e) {
-            return new JsonResponse([ 'status' => 'error', 'message' => $e->getMessage(), 'code' => $e->getCode()]);
+            return new JsonResponse(['status' => 'error', 'message' => $e->getMessage(), 'code' => $e->getCode()]);
         }
     }
 
@@ -162,6 +162,7 @@ class AjaxController
 
         return $translationInDefaultLanguage;
     }
+
     /**
      * Returns the current BE user.
      *
@@ -240,7 +241,7 @@ class AjaxController
      * @param $data
      * @throws \Exception
      */
-    protected function checkPermissions($data) : void
+    protected function checkPermissions($data): void
     {
         if (!$this->getBackendUser()->check('tables_modify', $this->tableName)) {
             throw new \Exception('BE user is not allowed to edit translations', 1568803075);

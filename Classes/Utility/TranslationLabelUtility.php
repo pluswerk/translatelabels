@@ -10,13 +10,14 @@ namespace Sitegeist\Translatelabels\Utility;
  * LICENSE file that was distributed with this source code.
  *
  */
-
+use TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException;
+use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
+use TYPO3\CMS\Core\Http\ApplicationType;
 use Psr\Http\Message\ServerRequestInterface;
 use Sitegeist\Translatelabels\Domain\Model\Translation;
 use TYPO3\CMS\Backend\Exception;
 use TYPO3\CMS\Core\Http\ServerRequestFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\BackendConfigurationManager;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Core\Context\Context;
 use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
@@ -87,7 +88,7 @@ class TranslationLabelUtility
      * @param $labelKey
      * @param $translation
      * @throws \TYPO3\CMS\Extbase\Object\Exception
-     * @throws \TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException
+     * @throws IllegalObjectTypeException
      */
     public static function createLabel($labelKey, $translation)
     {
@@ -138,7 +139,7 @@ class TranslationLabelUtility
      * @param string $labelKey
      * @param string $extensionName
      * @return bool
-     * @throws \TYPO3\CMS\Core\Context\Exception\AspectNotFoundException
+     * @throws AspectNotFoundException
      */
     public static function isFrontendWithLoggedInBEUser($labelKey = '', $extensionName = '')
     {
@@ -156,7 +157,7 @@ class TranslationLabelUtility
             );
         }
         return ($isLoggedIn !== 0
-            && TYPO3_MODE === 'FE'
+            && ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()
             && strpos($labelKey, 'adminpanel') !== 0
             && $extensionName !== 'adminpanel'
             && $showTranslationLabels === '1'
@@ -171,7 +172,8 @@ class TranslationLabelUtility
      * @param $extensionName
      * @return string
      */
-    public static function getDefaultLanguageFile($extensionName) {
+    public static function getDefaultLanguageFile($extensionName)
+    {
         return GeneralUtility::camelCaseToLowerCaseUnderscored($extensionName) . '/Resources/Private/Language/locallang.xlf';
     }
 
@@ -192,12 +194,27 @@ class TranslationLabelUtility
         return self::getLabelKeyWithoutPrefixes($extendedLabelKey);
     }
 
+    /**
+     * @param $labelKey
+     * @return false|mixed|string
+     */
     public static function getLabelKeyWithoutPrefixes($labelKey)
     {
         // remove leading 'LLL:'
-        $labelKey = (strpos($labelKey,'LLL:') === 0) ? substr($labelKey, 4) : $labelKey;
+        $labelKey = (strpos($labelKey, 'LLL:') === 0) ? substr($labelKey, 4) : $labelKey;
         // remove leading 'EXT:'
         $labelKey = (strpos($labelKey, 'EXT:') === 0) ? substr($labelKey, 4) : $labelKey;
         return $labelKey;
+    }
+
+    /**
+     * replaces all html tags from $content and replaces <br>, <br />, <br/>, <div> with newline
+     *
+     * @param $content
+     * @return string
+     */
+    public static function stripAllTagsButNewlines($content)
+    {
+        return (strip_tags(str_replace(["<br/>\n", "<br />\n", "<br>\n",'<div>'], ["\n", "\n", "\n", "\n"], $content)));
     }
 }

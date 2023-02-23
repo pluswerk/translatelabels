@@ -7,10 +7,15 @@
         {
             "name": "Alexander Bohndorf",
             "role": "Developer"
+        },
+        {
+            "name": "Christian Rath-Ulrich",
+            "role": "Developer"
         }
     ],
     "require": {
-        "typo3/cms-core": "^10.0.0 || ^10.1.0"
+        "typo3/cms-core": "^11.5 || ^10.4",
+        "typo3/cms-adminpanel": "^11.5 || ^10.4"
     },
     "autoload": {
         "psr-4": {
@@ -24,5 +29,18 @@
     },
     "replace": {
         "typo3-ter/translatelabels": "self.version"
+    },
+    "require-dev": {
+        "typo3/testing-framework": "^6.10"
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "translatelabels"
+        }
+    },
+    "scripts": {
+        "prepare-release": [
+            "rm -r .github Tests"
+        ]
     }
 }
