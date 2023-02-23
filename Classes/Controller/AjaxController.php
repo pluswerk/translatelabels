@@ -184,7 +184,7 @@ class AjaxController
         $connection = GeneralUtility::makeInstance(ConnectionPool::class);
         $connectionForTranslations = $connection->getConnectionForTable($this->tableName);
 
-        $translation = $connectionForTranslations
+        $connection = $connectionForTranslations
             ->select(
                 ['uid', 'pid', 'labelkey', 'translation'], // fields to select
                 $this->tableName, // from
@@ -193,10 +193,12 @@ class AjaxController
                     'pid' => $pid,
                     'sys_language_uid' => $sysLanguageUid
                 ] // where
-            )
-            ->fetch();
-
-        return $translation;
+            );
+        if (method_exists($connection, 'fetchAssociative')) {
+            return $connection->fetchAssociative();
+        } else {
+            return $connection->fetch();
+        }
     }
 
     /**
