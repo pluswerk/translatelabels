@@ -185,7 +185,10 @@ class TranslationLabelUtility
     public static function getExtendLabelKeyWithLanguageFilePath($labelKey, $extensionName)
     {
         $reversedParts = explode(':', strrev($labelKey), 2);
-        $languageFile = strrev($reversedParts[1]);
+        $languageFile = '';
+        if (isset($reversedParts[1])) {
+            $languageFile = strrev($reversedParts[1]);
+        }
         $extendedLabelKey = $labelKey;
         if ($languageFile === '') {
             // $extendedLabelKey = 'LLL:EXT:' . self::getDefaultLanguageFile($extensionName) . ':' . $labelKey;
