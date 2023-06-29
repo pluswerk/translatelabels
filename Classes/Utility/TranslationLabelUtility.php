@@ -39,9 +39,15 @@ class TranslationLabelUtility
         // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
         $storagePid = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.']['storagePid'] ?? null;
         if ($storagePid === null) {
+            $configurationManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Configuration\ConfigurationManager::class);
+            $fullTypoScript = $configurationManager->getConfiguration(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT, 'translatelabels', 'yourplugin');
+            $yourTypoScriptSetup = $fullTypoScript['plugin.']['tx_translatelabels.'];
+            $storagePid = $yourTypoScriptSetup['settings.']['storagePid'] ?? null;
+        }
+        if ($storagePid === null) {
             throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.storagePid not defined.', 1567012007);
         }
-        return $storagePid;
+        return (int)$storagePid;
     }
 
     /**
