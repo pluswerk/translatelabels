@@ -139,13 +139,11 @@ class TranslateElementPropertyViewHelper extends \TYPO3\CMS\Form\ViewHelpers\Tra
         ) {
             if (\is_array($ret)) {
                 foreach ($ret as $key => $value) {
-                    if (is_string($value)) {
-                        $ret[$key] = self::renderTranslation(
-                            $translationKey . '.' . $key,
-                            $value,
-                            $translationArguments
-                        );
-                    }
+                    $ret[$key] = self::renderTranslation(
+                        $translationKey . '.' . $key,
+                        (string)$value,
+                        $translationArguments
+                    );
                 }
             } else {
                 $ret = self::renderTranslation($translationKey, $ret, $translationArguments);
