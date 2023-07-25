@@ -10,6 +10,7 @@ namespace Sitegeist\Translatelabels\Utility;
  * LICENSE file that was distributed with this source code.
  *
  */
+
 use TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -25,6 +26,8 @@ use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
 
 class TranslationLabelUtility
 {
+    protected static $settings = [];
+
     /**
      * returns storagePid where to store translation records
      *
@@ -34,20 +37,18 @@ class TranslationLabelUtility
      */
     public static function getStoragePid()
     {
-        // TYPOSCRIPT setup is only defined in TSFE if page is uncached and TYPO_MODE === 'FE'
-        // @see typo3conf/ext/translatelabels/Classes/Adminpanel/Modules/TranslateLabelModule.php:133
-        // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
-        $storagePid = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.']['storagePid'] ?? null;
-        if ($storagePid === null) {
-            $configurationManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Configuration\ConfigurationManager::class);
-            $fullTypoScript = $configurationManager->getConfiguration(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT, 'translatelabels', 'yourplugin');
-            $yourTypoScriptSetup = $fullTypoScript['plugin.']['tx_translatelabels.'];
-            $storagePid = $yourTypoScriptSetup['settings.']['storagePid'] ?? null;
+        return (int)self::getTypoScriptSetting('storagePid');
+    }
+
+    public static function getLanguageOverlayMode()
+    {
+        try {
+            $languageOverlayMode = self::getTypoScriptSetting('languageOverlayMode');
+        } catch (Exception $e) {
+            return 'hideNonTranslated';
         }
-        if ($storagePid === null) {
-            throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.storagePid not defined.', 1567012007);
-        }
-        return (int)$storagePid;
+
+        return filter_var($languageOverlayMode, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -83,7 +84,7 @@ class TranslationLabelUtility
          */
         $translationRepository = $objectManager->get(TranslationRepository::class);
         if ($languageUid === null) {
-            $translation = $translationRepository->findOneByLabelKeyInPid($labelKey, $pid);
+            $translation = $translationRepository->findOneByLabelKeyInPid($labelKey, $pid, static::getLanguageOverlayMode());
         } else {
             $translation = $translationRepository->findOneByLabelKeyInLanguageInPid($labelKey, $languageUid, $pid);
         }
@@ -225,5 +226,28 @@ class TranslationLabelUtility
     public static function stripAllTagsButNewlines($content)
     {
         return (strip_tags(str_replace(["<br/>\n", "<br />\n", "<br>\n",'<div>'], ["\n", "\n", "\n", "\n"], $content)));
+    }
+
+    private static function getTypoScriptSetting(string $string)
+    {
+        if (isset(static::$settings[$string])) {
+            return static::$settings[$string];
+        }
+
+        // TYPOSCRIPT setup is only defined in TSFE if page is uncached and TYPO_MODE === 'FE'
+        // @see typo3conf/ext/translatelabels/Classes/Adminpanel/Modules/TranslateLabelModule.php:133
+        // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
+        $setting = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.'][$string] ?? null;
+        if ($setting === null) {
+            $configurationManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Configuration\ConfigurationManager::class);
+            $fullTypoScript = $configurationManager->getConfiguration(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT, 'translatelabels', 'yourplugin');
+            $yourTypoScriptSetup = $fullTypoScript['plugin.']['tx_translatelabels.'];
+            $setting = $yourTypoScriptSetup['settings.'][$string] ?? null;
+        }
+        if ($setting === null) {
+            throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.' . $string . ' not defined.', 1567012007);
+        }
+        static::$settings[$string] = $setting;
+        return static::$settings[$string];
     }
 }

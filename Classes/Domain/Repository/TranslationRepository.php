@@ -65,12 +65,13 @@ class TranslationRepository extends Repository
      * @param int $pid
      * @return object
      */
-    public function findOneByLabelKeyInPid(string $label, int $pid)
+    public function findOneByLabelKeyInPid(string $label, int $pid, $languageOverlayMode)
     {
         $query = $this->createQuery();
 
         $query->getQuerySettings()
-            ->setRespectStoragePage(false);
+            ->setRespectStoragePage(false)
+            ->setLanguageOverlayMode($languageOverlayMode);
 
         $constraints = $query->logicalAnd(
             [
