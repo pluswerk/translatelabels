@@ -14,8 +14,8 @@
         }
     ],
     "require": {
-        "typo3/cms-core": "^11.5 || ^10.4",
-        "typo3/cms-adminpanel": "^11.5 || ^10.4"
+        "typo3/cms-core": "^12.4 || ^11.5",
+        "typo3/cms-adminpanel": "^12.4 || ^11.5"
     },
     "autoload": {
         "psr-4": {
@@ -42,5 +42,11 @@
         "prepare-release": [
             "rm -r .github Tests"
         ]
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/class-alias-loader": true,
+            "typo3/cms-composer-installers": true
+        }
     }
 }

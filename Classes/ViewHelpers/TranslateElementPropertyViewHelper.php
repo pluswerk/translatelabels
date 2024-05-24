@@ -11,12 +11,15 @@ namespace Sitegeist\Translatelabels\ViewHelpers;
  *
  */
 
+use TYPO3\CMS\Form\Domain\Model\Renderable\RootRenderableInterface;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3\CMS\Form\ViewHelpers\RenderRenderableViewHelper;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\Exception\MissingArrayPathException;
 use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
 use Sitegeist\Translatelabels\ViewHelpers\Traits\RenderTranslation;
+use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Class TranslateElementPropertyViewHelper
@@ -38,10 +41,17 @@ use Sitegeist\Translatelabels\ViewHelpers\Traits\RenderTranslation;
  *    Third => 'dritte'
  *    Fourth => 'vierte'
  */
-class TranslateElementPropertyViewHelper extends \TYPO3\CMS\Form\ViewHelpers\TranslateElementPropertyViewHelper
+class TranslateElementPropertyViewHelper extends AbstractViewHelper
 {
-
+    use CompileWithRenderStatic;
     use RenderTranslation;
+
+    public function initializeArguments(): void
+    {
+        $this->registerArgument('element', RootRenderableInterface::class, 'Form Element to translate', true);
+        $this->registerArgument('property', 'mixed', 'Property to translate', false);
+        $this->registerArgument('renderingOptionProperty', 'mixed', 'Property to translate', false);
+    }
 
     protected static function getPropertyName($property)
     {
@@ -130,7 +140,7 @@ class TranslateElementPropertyViewHelper extends \TYPO3\CMS\Form\ViewHelpers\Tra
         } catch (MissingArrayPathException $e) {
             $translationArguments = [];
         }
-        $ret = parent::renderStatic($arguments, $renderChildrenClosure, $renderingContext);
+        $ret = \TYPO3\CMS\Form\ViewHelpers\TranslateElementPropertyViewHelper::renderStatic($arguments, $renderChildrenClosure, $renderingContext);
         if ($property === 'label' ||
             $property === 'elementDescription' ||
             // $property === 'submitButtonLabel' ||

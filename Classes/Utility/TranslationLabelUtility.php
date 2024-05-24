@@ -24,7 +24,6 @@ use Sitegeist\Translatelabels\Domain\Model\Translation;
 use TYPO3\CMS\Backend\Exception;
 use TYPO3\CMS\Core\Http\ServerRequestFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Core\Context\Context;
 use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
 use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
@@ -36,7 +35,7 @@ class TranslationLabelUtility
     /**
      * returns storagePid where to store translation records
      *
-     * @return null
+     * @return int<1, max>
      * @throws Exception
      * @throws \TYPO3\CMS\Extbase\Object\Exception
      */
@@ -46,10 +45,10 @@ class TranslationLabelUtility
         // @see typo3conf/ext/translatelabels/Classes/Adminpanel/Modules/TranslateLabelModule.php:133
         // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
         $storagePid = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.']['storagePid'] ?? null;
-        if ($storagePid === null) {
+        if ($storagePid === null || (int)$storagePid <= 0) {
             throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.storagePid not defined.', 1567012007);
         }
-        return $storagePid;
+        return (int)$storagePid;
     }
 
     /**
@@ -68,9 +67,8 @@ class TranslationLabelUtility
 
             $cacheValue = $cache->require($cacheIdentifier);
             if ($cacheValue === false) {
-                $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
                 /** @var $translationRepository TranslationRepository */
-                $translationRepository = $objectManager->get(TranslationRepository::class);
+                $translationRepository = GeneralUtility::makeInstance(TranslationRepository::class);
                 $cacheLifetime = PHP_INT_MAX;
                 $result = $translationRepository->findAllByPid($cacheIdentifier)->toArray();
                 $cacheValue = [];
@@ -114,11 +112,10 @@ class TranslationLabelUtility
      */
     public static function getLabelFromDatabase(string $labelKey, int $pid, int $languageUid = null)
     {
-        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         /**
          * @var $translationRepository TranslationRepository
          */
-        $translationRepository = $objectManager->get(TranslationRepository::class);
+        $translationRepository = GeneralUtility::makeInstance(TranslationRepository::class);
         if ($languageUid === null) {
             $translation = $translationRepository->findOneByLabelKeyInPid($labelKey, $pid);
         } else {
@@ -135,12 +132,10 @@ class TranslationLabelUtility
      */
     public static function createLabel($labelKey, $translation)
     {
-
-        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         /**
          * @var $translationRepository TranslationRepository
          */
-        $translationRepository = $objectManager->get(TranslationRepository::class);
+        $translationRepository = GeneralUtility::makeInstance(TranslationRepository::class);
         $translationObj = new Translation();
         $translationObj->setLabelkey($labelKey);
         $translationObj->setTranslation($translation);

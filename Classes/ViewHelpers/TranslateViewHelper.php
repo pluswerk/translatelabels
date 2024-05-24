@@ -10,6 +10,9 @@ namespace Sitegeist\Translatelabels\ViewHelpers;
  * LICENSE file that was distributed with this source code.
  *
  */
+
+use TYPO3\CMS\Extbase\Mvc\RequestInterface as ExtbaseRequestInterface;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -123,8 +126,36 @@ class TranslateViewHelper extends AbstractViewHelper
         if ((string)$id === '') {
             throw new \TYPO3Fluid\Fluid\Core\Exception('An argument "key" or "id" has to be provided', 1351584844);
         }
-        $request = $renderingContext->getControllerContext()->getRequest();
-        $extensionName = $extensionName ?? $request->getControllerExtensionName();
+
+        $request = null;
+        if ($renderingContext instanceof RenderingContext) {
+            $request = $renderingContext->getRequest();
+        }
+
+        if (empty($extensionName)) {
+            if ($request instanceof ExtbaseRequestInterface) {
+                $extensionName = $request->getControllerExtensionName();
+            } elseif (str_starts_with($id, 'LLL:EXT:')) {
+                $extensionName = substr($id, 8, strpos($id, '/', 8) - 8);
+            } elseif ($default) {
+                if (!empty($translateArguments)) {
+                    return vsprintf($default, $translateArguments);
+                }
+                return $default;
+            } else {
+                // Throw exception in case neither an extension key nor a extbase request
+                // are given, since the "short key" shouldn't be considered as a label.
+                throw new \RuntimeException(
+                    'ViewHelper f:translate in non-extbase context needs attribute "extensionName" to resolve'
+                    . ' key="' . $id . '" without path. Either set attribute "extensionName" together with the short'
+                    . ' key "yourKey" to result in a lookup "LLL:EXT:your_extension/Resources/Private/Language/locallang.xlf:yourKey",'
+                    . ' or (better) use a full LLL reference like key="LLL:EXT:your_extension/Resources/Private/Language/yourFile.xlf:yourKey".'
+                    . ' Alternatively, you can also define a default value.',
+                    1639828178
+                );
+            }
+        }
+
         try {
             $value = static::translate($id, $extensionName, $translateArguments, $arguments['languageKey'], $arguments['alternativeLanguageKeys']);
         } catch (\InvalidArgumentException $e) {
@@ -137,7 +168,7 @@ class TranslateViewHelper extends AbstractViewHelper
             }
         }
 
-        if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
+        if (ApplicationType::fromRequest($request)->isFrontend()) {
             $id = TranslationLabelUtility::getExtendLabelKeyWithLanguageFilePath($id, $extensionName);
             $value = TranslationLabelUtility::readLabelFromDatabase($id, $value);
             if (\is_array($translateArguments) && $value !== null) {

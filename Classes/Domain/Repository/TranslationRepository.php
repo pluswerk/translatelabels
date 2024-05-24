@@ -1,6 +1,7 @@
 <?php
 namespace Sitegeist\Translatelabels\Domain\Repository;
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
 
@@ -22,7 +23,7 @@ class TranslationRepository extends Repository
         /**
          * @var Typo3QuerySettings $querySettings
          */
-        $querySettings = $this->objectManager->get(Typo3QuerySettings::class);
+        $querySettings = GeneralUtility::makeInstance(Typo3QuerySettings::class);
         $querySettings->setRespectStoragePage(false);
         $querySettings->setLanguageOverlayMode('hideNonTranslated');
         $this->setDefaultQuerySettings($querySettings);
@@ -73,10 +74,8 @@ class TranslationRepository extends Repository
             ->setRespectStoragePage(false);
 
         $constraints = $query->logicalAnd(
-            [
-                $query->equals('labelkey', $label),
-                $query->equals('pid', $pid)
-            ]
+            $query->equals('labelkey', $label),
+            $query->equals('pid', $pid),
         );
 
         $result = $query->matching($constraints)->execute();
@@ -95,10 +94,8 @@ class TranslationRepository extends Repository
             ->setRespectStoragePage(false);
 
         $constraints = $query->logicalAnd(
-            [
-                $query->equals('pid', $pid),
-                $query->equals('hidden', false)
-            ]
+            $query->equals('pid', $pid),
+            $query->equals('hidden', false),
         );
 
         $result = $query->matching($constraints)->execute();

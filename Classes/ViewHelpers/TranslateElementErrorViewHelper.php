@@ -12,7 +12,10 @@ namespace Sitegeist\Translatelabels\ViewHelpers;
  */
 
 use TYPO3\CMS\Extbase\Error\Error;
+use TYPO3\CMS\Form\Domain\Model\Renderable\RootRenderableInterface;
+use TYPO3\CMS\Form\ViewHelpers\TranslateElementErrorViewHelper as FormTranslateElementErrorViewHelpers;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
+use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 use Sitegeist\Translatelabels\ViewHelpers\Traits\RenderTranslation;
 use TYPO3\CMS\Form\ViewHelpers\RenderRenderableViewHelper;
@@ -24,10 +27,16 @@ use TYPO3\CMS\Form\ViewHelpers\RenderRenderableViewHelper;
  * extends the base translateElementError viewhelper to show names of translation labels instead of translations
  * if admin panel is activated and checkbox "show translation labels" is checked.
  */
-class TranslateElementErrorViewHelper extends \TYPO3\CMS\Form\ViewHelpers\TranslateElementErrorViewHelper
+class TranslateElementErrorViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
     use RenderTranslation;
+
+    public function initializeArguments(): void
+    {
+        $this->registerArgument('element', RootRenderableInterface::class, 'Form Element to translate', true);
+        $this->registerArgument('error', Error::class, 'Error', true);
+    }
 
     /**
      * Return array element by key.
@@ -39,7 +48,7 @@ class TranslateElementErrorViewHelper extends \TYPO3\CMS\Form\ViewHelpers\Transl
      */
     public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
     {
-        $originalTranslation = parent::renderStatic($arguments, $renderChildrenClosure, $renderingContext);
+        $originalTranslation = FormTranslateElementErrorViewHelpers::renderStatic($arguments, $renderChildrenClosure, $renderingContext);
 
         $element = $arguments['element'];
         $error = $arguments['error'];
