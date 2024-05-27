@@ -1,3 +1,6 @@
 # cat=translatelabels/storage/10; type=int; label=storagePid of sysfolder to store translation records
 plugin.tx_translatelabels.settings.storagePid = 0
+# cat=translatelabels/storage/11; type=string; label=Language overlay mode
 plugin.tx_translatelabels.settings.languageOverlayMode = hideNonTranslated
+# cat=translatelabels/storage/12; type=boolean; label=Create page cache tags
+plugin.tx_translatelabels.settings.pageCacheTags = 1
