@@ -13,6 +13,7 @@ namespace Sitegeist\Translatelabels\ViewHelpers;
 
 use TYPO3\CMS\Extbase\Mvc\RequestInterface as ExtbaseRequestInterface;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -168,7 +169,8 @@ class TranslateViewHelper extends AbstractViewHelper
             }
         }
 
-        if (ApplicationType::fromRequest($request)->isFrontend()) {
+        if (($GLOBALS['TYPO3_REQUEST'] ?? null) instanceof ServerRequestInterface
+            && ApplicationType::fromRequest($request)->isFrontend()) {
             $id = TranslationLabelUtility::getExtendLabelKeyWithLanguageFilePath($id, $extensionName);
             $value = TranslationLabelUtility::readLabelFromDatabase($id, $value);
             if (\is_array($translateArguments) && $value !== null) {

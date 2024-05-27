@@ -11,11 +11,11 @@ namespace Sitegeist\Translatelabels\Utility;
  *
  */
 
-use phpDocumentor\Reflection\Types\This;
-use TYPO3\CMS\Core\Cache\Backend\BackendInterface;
-use TYPO3\CMS\Core\Cache\Backend\FileBackend;
-use TYPO3\CMS\Core\Cache\Backend\SimpleFileBackend;
+use RuntimeException;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Exception\InvalidDataException;
+use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -30,41 +30,47 @@ use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
 
 class TranslationLabelUtility
 {
+    protected static array $settings = [];
     protected static ?array $labelCache = null;
     protected static int $languageUid = 0;
     /**
      * returns storagePid where to store translation records
      *
-     * @return int<1, max>
+     * @return null
      * @throws Exception
      * @throws \TYPO3\CMS\Extbase\Object\Exception
      */
     public static function getStoragePid()
     {
-        // TYPOSCRIPT setup is only defined in TSFE if page is uncached and TYPO_MODE === 'FE'
-        // @see typo3conf/ext/translatelabels/Classes/Adminpanel/Modules/TranslateLabelModule.php:133
-        // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
-        $storagePid = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.']['storagePid'] ?? null;
-        if ($storagePid === null || (int)$storagePid <= 0) {
-            throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.storagePid not defined.', 1567012007);
+        return (int)self::getTypoScriptSetting('storagePid');
+    }
+
+    public static function getLanguageOverlayMode()
+    {
+        try {
+            $languageOverlayMode = self::getTypoScriptSetting('languageOverlayMode');
+        } catch (Exception $e) {
+            return 'hideNonTranslated';
         }
-        return (int)$storagePid;
+
+        return filter_var($languageOverlayMode, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
      * @param string $labelKey Translation Key compatible to TYPO3 Flow
-     * @param string $fallBackTranslation  current translation from LocalizationUtility::translate
+     * @param string $fallBackTranslation current translation from LocalizationUtility::translate
      *                                     (will be used if no record is found)
      * @return string                      new translation, maybe overridden from translation record if defined
+     * @throws AspectNotFoundException
+     * @throws InvalidDataException
      * @throws Exception
      * @throws \TYPO3\CMS\Extbase\Object\Exception
      */
     public static function readLabelFromDatabase(string $labelKey, string $fallBackTranslation = null, int $pid = null, int $languageUid = null)
     {
-        if (!self::$labelCache) {
-            $cache ??= GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)->getCache('translatelabels_cache');
+        if (!self::$labelCache && $cache = self::getCache()) {
             $cacheIdentifier = $pid ?? self::getStoragePid();
-
+            $cacheIdentifier = (string)$cacheIdentifier;
             $cacheValue = $cache->require($cacheIdentifier);
             if ($cacheValue === false) {
                 /** @var $translationRepository TranslationRepository */
@@ -86,7 +92,7 @@ class TranslationLabelUtility
                     $cacheValue[$translation->getLabelkey()][$translation->getLanguageUid()] = $translation->getTranslation();
                 }
                 $lifetime = $cacheLifetime !== PHP_INT_MAX ? ($cacheLifetime - $GLOBALS['EXEC_TIME']) : 0;
-                $cache->set($cacheIdentifier,'return ' . var_export($cacheValue, true) . ';', [], $cacheLifetime !== PHP_INT_MAX ? ($cacheLifetime - $GLOBALS['EXEC_TIME']) : 0);
+                $cache->set($cacheIdentifier, 'return ' . var_export($cacheValue, true) . ';', [], $lifetime);
             }
             self::$labelCache = $cacheValue;
         }
@@ -117,7 +123,7 @@ class TranslationLabelUtility
          */
         $translationRepository = GeneralUtility::makeInstance(TranslationRepository::class);
         if ($languageUid === null) {
-            $translation = $translationRepository->findOneByLabelKeyInPid($labelKey, $pid);
+            $translation = $translationRepository->findOneByLabelKeyInPid($labelKey, $pid, static::getLanguageOverlayMode());
         } else {
             $translation = $translationRepository->findOneByLabelKeyInLanguageInPid($labelKey, $languageUid, $pid);
         }
@@ -254,5 +260,45 @@ class TranslationLabelUtility
     public static function stripAllTagsButNewlines($content)
     {
         return (strip_tags(str_replace(["<br/>\n", "<br />\n", "<br>\n",'<div>'], ["\n", "\n", "\n", "\n"], $content)));
+    }
+
+    private static function getTypoScriptSetting(string $string)
+    {
+        if (isset(static::$settings[$string])) {
+            return static::$settings[$string];
+        }
+
+        // TYPOSCRIPT setup is only defined in TSFE if page is uncached and TYPO_MODE === 'FE'
+        // @see typo3conf/ext/translatelabels/Classes/Adminpanel/Modules/TranslateLabelModule.php:133
+        // to enforce parsing of TYPOSCRIPT setting $GLOBALS['TSFE']->forceTemplateParsing = true;
+        $setting = $GLOBALS['TSFE']->tmpl->setup['plugin.']['tx_translatelabels.']['settings.'][$string] ?? null;
+        if ($setting === null) {
+            $configurationManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Configuration\ConfigurationManager::class);
+            $fullTypoScript = $configurationManager->getConfiguration(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT, 'translatelabels', 'yourplugin');
+            $yourTypoScriptSetup = $fullTypoScript['plugin.']['tx_translatelabels.'];
+            $setting = $yourTypoScriptSetup['settings.'][$string] ?? null;
+        }
+        if ($setting === null) {
+            throw new Exception('Missing TYPOSCRIPT: plugin.tx_translatelabels.settings.' . $string . ' not defined.', 1567012007);
+        }
+        static::$settings[$string] = $setting;
+        return static::$settings[$string];
+    }
+
+    /**
+     * returns the caching frontend if there is one configured
+     * @throws RuntimeException
+     */
+    protected static function getCache(): ?PhpFrontend
+    {
+        try {
+            $cache ??= GeneralUtility::makeInstance(CacheManager::class)->getCache('translatelabels_cache');
+        } catch (NoSuchCacheException) {
+            return null;
+        }
+        if ($cache instanceof PhpFrontend === false) {
+            throw new RuntimeException('translatelabels_cache must implement PhpFrontend');
+        }
+        return $cache;
     }
 }
