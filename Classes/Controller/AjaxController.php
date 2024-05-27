@@ -11,6 +11,9 @@ namespace Sitegeist\Translatelabels\Controller;
  * LICENSE file that was distributed with this source code.
  *
  */
+
+use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 use function GuzzleHttp\json_decode;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
@@ -58,6 +61,8 @@ class AjaxController
      */
     protected $languageService;
 
+    protected TranslationRepository $translationRepository;
+
     /**
      * @param ConfigurationService $configurationService
      * @param ModuleLoader $moduleLoader
@@ -71,6 +76,8 @@ class AjaxController
         $this->moduleLoader = $moduleLoader ?? GeneralUtility::makeInstance(ModuleLoader::class);
         $this->languageService = GeneralUtility::makeInstance(LanguageService::class);
         $this->languageService->init($this->getBackendUser()->uc['lang']);
+        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->translationRepository = $objectManager->get(TranslationRepository::class);
     }
 
     /**
@@ -216,7 +223,10 @@ class AjaxController
             ->insert($this->tableName)
             ->values($fields)
             ->execute();
-        return $connectionForTranslations->lastInsertId($this->tableName);
+
+        $id = $connectionForTranslations->lastInsertId($this->tableName);
+        TranslationLabelUtility::flushCache($fields['labelkey']);
+        return $id;
     }
 
     /**
@@ -237,6 +247,8 @@ class AjaxController
                 'uid' => $uid
             ] // where
         );
+        $translation = $this->translationRepository->findByUid($uid);
+        TranslationLabelUtility::flushCache($translation->getLabelkey());
     }
 
     /**

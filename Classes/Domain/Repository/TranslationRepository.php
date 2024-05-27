@@ -1,6 +1,7 @@
 <?php
 namespace Sitegeist\Translatelabels\Domain\Repository;
 
+use Sitegeist\Translatelabels\Domain\Model\Translation;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
 
@@ -34,7 +35,7 @@ class TranslationRepository extends Repository
      * @param $label
      * @param $languageUid
      * @param $pid
-     * @return object
+     * @return null|Translation
      */
     public function findOneByLabelKeyInLanguageInPid($label, $languageUid, $pid)
     {
@@ -56,14 +57,16 @@ class TranslationRepository extends Repository
             ]
         );
 
-        $result = $query->matching($constraints)->execute();
-        return $result->getFirst();
+        $translation = $query->matching($constraints)->execute()->getFirst();
+        assert(null === $translation || $translation instanceof Translation);
+        return $translation;
     }
 
     /**
      * @param string $label
      * @param int $pid
-     * @return object
+     * @param $languageOverlayMode
+     * @return null|Translation
      */
     public function findOneByLabelKeyInPid(string $label, int $pid, $languageOverlayMode)
     {
@@ -80,8 +83,9 @@ class TranslationRepository extends Repository
             ]
         );
 
-        $result = $query->matching($constraints)->execute();
-        return $result->getFirst();
+        $translation = $query->matching($constraints)->execute()->getFirst();
+        assert(null === $translation || $translation instanceof Translation);
+        return $translation;
     }
 
     public function findAllByPid(int $pid)
