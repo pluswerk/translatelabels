@@ -1,4 +1,5 @@
 plugin.tx_translatelabels.settings {
     storagePid = {$plugin.tx_translatelabels.settings.storagePid}
     languageOverlayMode = {$plugin.tx_translatelabels.settings.languageOverlayMode}
+    pageCacheTags = {$plugin.tx_translatelabels.settings.pageCacheTags}
 }

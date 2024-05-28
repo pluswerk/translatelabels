@@ -11,6 +11,11 @@ namespace Sitegeist\Translatelabels\Utility;
  *
  */
 
+use RuntimeException;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Exception\InvalidDataException;
+use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -23,6 +28,7 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Core\Context\Context;
 use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
 use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 class TranslationLabelUtility
 {
@@ -52,20 +58,32 @@ class TranslationLabelUtility
         return filter_var($languageOverlayMode, FILTER_VALIDATE_BOOLEAN);
     }
 
+    public static function getPageCacheTags()
+    {
+        try {
+            $pageCacheTags = self::getTypoScriptSetting('pageCacheTags');
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return filter_var($pageCacheTags, FILTER_VALIDATE_BOOLEAN);
+    }
+
     /**
      * @param string $labelKey Translation Key compatible to TYPO3 Flow
-     * @param string $fallBackTranslation  current translation from LocalizationUtility::translate
+     * @param string $fallBackTranslation current translation from LocalizationUtility::translate
      *                                     (will be used if no record is found)
      * @return string                      new translation, maybe overridden from translation record if defined
+     * @throws AspectNotFoundException
+     * @throws InvalidDataException
      * @throws Exception
      * @throws \TYPO3\CMS\Extbase\Object\Exception
      */
     public static function readLabelFromDatabase(string $labelKey, string $fallBackTranslation = null, int $pid = null, int $languageUid = null)
     {
-        if (!self::$labelCache) {
-            $cache ??= GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)->getCache('translatelabels_cache');
+        if (!self::$labelCache && $cache = self::getCache()) {
             $cacheIdentifier = $pid ?? self::getStoragePid();
-
+            $cacheIdentifier = (string)$cacheIdentifier;
             $cacheValue = $cache->require($cacheIdentifier);
             if ($cacheValue === false) {
                 $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
@@ -88,7 +106,7 @@ class TranslationLabelUtility
                     $cacheValue[$translation->getLabelkey()][$translation->getLanguageUid()] = $translation->getTranslation();
                 }
                 $lifetime = $cacheLifetime !== PHP_INT_MAX ? ($cacheLifetime - $GLOBALS['EXEC_TIME']) : 0;
-                $cache->set($cacheIdentifier,'return ' . var_export($cacheValue, true) . ';', [], $cacheLifetime !== PHP_INT_MAX ? ($cacheLifetime - $GLOBALS['EXEC_TIME']) : 0);
+                $cache->set($cacheIdentifier, 'return ' . var_export($cacheValue, true) . ';', [], $lifetime);
             }
             self::$labelCache = $cacheValue;
         }
@@ -102,6 +120,7 @@ class TranslationLabelUtility
         if ($translation !== null) {
             $fallBackTranslation = $translation;
         }
+        static::propagateCacheTag($labelKey);
         return $fallBackTranslation;
     }
 
@@ -124,6 +143,9 @@ class TranslationLabelUtility
         } else {
             $translation = $translationRepository->findOneByLabelKeyInLanguageInPid($labelKey, $languageUid, $pid);
         }
+
+        static::propagateCacheTag($labelKey);
+
         return $translation;
     }
 
@@ -282,5 +304,54 @@ class TranslationLabelUtility
         }
         static::$settings[$string] = $setting;
         return static::$settings[$string];
+    }
+
+    /**
+     * returns the caching frontend if there is one configured
+     * @throws RuntimeException
+     */
+    protected static function getCache(): ?PhpFrontend
+    {
+        try {
+            $cache ??= GeneralUtility::makeInstance(CacheManager::class)->getCache('translatelabels_cache');
+        } catch (NoSuchCacheException) {
+            return null;
+        }
+        if ($cache instanceof PhpFrontend === false) {
+            throw new RuntimeException('translatelabels_cache must implement PhpFrontend');
+        }
+        return $cache;
+    }
+
+    protected static function propagateCacheTag(string $labelKey)
+    {
+        if (!static::getPageCacheTags()) {
+            return;
+        }
+        if (isset($GLOBALS['TSFE']) && $GLOBALS['TSFE'] instanceof TypoScriptFrontendController) {
+            $tsfe = $GLOBALS['TSFE'];
+            $tags = $tsfe->getPageCacheTags();
+            $tag = 'tx_translatelabels_' . md5($labelKey);
+            if (!in_array($tag, $tags, true)) {
+                $tsfe->addCacheTags([$tag]);
+            }
+        }
+    }
+
+    public static function flushCache(string $labelKey)
+    {
+        if ($labelKey === '') {
+            return;
+        }
+        $cacheManager = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class);
+        try {
+            $cache = $cacheManager->getCache('translatelabels_cache');
+            $cache->flush();
+        } catch (NoSuchCacheException $e) {
+        }
+        if (!static::getPageCacheTags()) {
+            return;
+        }
+        $cacheManager->flushCachesByTag('tx_translatelabels_' . md5($labelKey));
     }
 }
