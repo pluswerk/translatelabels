@@ -124,7 +124,8 @@ class TranslateViewHelper extends AbstractViewHelper
             $id = $key;
         }
 
-        if ((string)$id === '') {
+        $id = (string)$id;
+        if ($id === '') {
             throw new \TYPO3Fluid\Fluid\Core\Exception('An argument "key" or "id" has to be provided', 1351584844);
         }
 
@@ -169,7 +170,7 @@ class TranslateViewHelper extends AbstractViewHelper
             }
         }
 
-        if (($GLOBALS['TYPO3_REQUEST'] ?? null) instanceof ServerRequestInterface
+        if ($request instanceof ServerRequestInterface
             && ApplicationType::fromRequest($request)->isFrontend()) {
             $id = TranslationLabelUtility::getExtendLabelKeyWithLanguageFilePath($id, $extensionName);
             $value = TranslationLabelUtility::readLabelFromDatabase($id, $value);
@@ -185,16 +186,8 @@ class TranslateViewHelper extends AbstractViewHelper
 
     /**
      * Wrapper call to static LocalizationUtility
-     *
-     * @param string $id Translation Key compatible to TYPO3 Flow
-     * @param string $extensionName UpperCamelCased extension key (for example BlogExample)
-     * @param array $arguments Arguments to be replaced in the resulting string
-     * @param string $languageKey Language key to use for this translation
-     * @param string[] $alternativeLanguageKeys Alternative language keys if no translation does exist
-     *
-     * @return string|null
      */
-    protected static function translate($id, $extensionName, $arguments, $languageKey, $alternativeLanguageKeys)
+    protected static function translate(string $id, ?string $extensionName = null, array $arguments = null, Locale|string $languageKey = null, array $alternativeLanguageKeys = null): ?string
     {
         return LocalizationUtility::translate($id, $extensionName, $arguments, $languageKey, $alternativeLanguageKeys);
     }

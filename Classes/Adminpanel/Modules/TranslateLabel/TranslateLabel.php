@@ -14,7 +14,6 @@ namespace Sitegeist\Translatelabels\Adminpanel\Modules\TranslateLabel;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use Psr\Http\Message\ServerRequestInterface;
 use Sitegeist\Translatelabels\Utility\TranslationLabelUtility;
-use TYPO3\CMS\Adminpanel\ModuleApi\AbstractSubModule;
 use TYPO3\CMS\Adminpanel\ModuleApi\ConfigurableInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\ContentProviderInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\DataProviderInterface;
@@ -30,34 +29,8 @@ use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
 /**
  * TranslateLabel Sub Module of the AdminPanel
  */
-class TranslateLabel extends AbstractSubModule implements DataProviderInterface, ContentProviderInterface, ConfigurableInterface
+class TranslateLabel extends AbstractSubModule
 {
-
-    /**
-     * @var ConfigurationService
-     */
-    protected $configurationService;
-
-    /**
-     * @var UriBuilder
-     */
-    protected $uriBuilder;
-
-    /**
-     * @var Context
-     */
-    protected $context;
-
-    /**
-     * TranslateLabel constructor.
-     */
-    public function __construct()
-    {
-        $this->configurationService = GeneralUtility::makeInstance(ConfigurationService::class);
-        $this->uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $this->context = GeneralUtility::makeInstance(Context::class);
-    }
-
     /**
      * @inheritdoc
      */
@@ -103,7 +76,6 @@ class TranslateLabel extends AbstractSubModule implements DataProviderInterface,
         $view->setPartialRootPaths(['EXT:adminpanel/Resources/Private/Partials']);
 
         $view->assignMultiple($data->getArrayCopy());
-
         return $view->render();
     }
 

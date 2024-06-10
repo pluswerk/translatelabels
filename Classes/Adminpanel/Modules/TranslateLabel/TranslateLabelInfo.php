@@ -13,7 +13,6 @@ namespace Sitegeist\Translatelabels\Adminpanel\Modules\TranslateLabel;
  */
 
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Adminpanel\ModuleApi\AbstractSubModule;
 use TYPO3\CMS\Adminpanel\ModuleApi\ConfigurableInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\ContentProviderInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\DataProviderInterface;
@@ -31,33 +30,8 @@ use TYPO3\CMS\Adminpanel\Service\ConfigurationService;
  *
  * @internal
  */
-class TranslateLabelInfo extends AbstractSubModule implements DataProviderInterface, ContentProviderInterface, ConfigurableInterface
+class TranslateLabelInfo extends AbstractSubModule
 {
-    /**
-     * @var ConfigurationService
-     */
-    protected $configurationService;
-
-    /**
-     * @var UriBuilder
-     */
-    protected $uriBuilder;
-
-    /**
-     * @var Context
-     */
-    protected $context;
-
-    /**
-     * TranslateLabel constructor.
-     */
-    public function __construct()
-    {
-        $this->configurationService = GeneralUtility::makeInstance(ConfigurationService::class);
-        $this->uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $this->context = GeneralUtility::makeInstance(Context::class);
-    }
-
     /**
      * Identifier for this Sub-module,
      * for example "preview" or "cache"
