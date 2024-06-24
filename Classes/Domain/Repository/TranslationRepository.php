@@ -51,11 +51,9 @@ class TranslationRepository extends Repository
             ->setRespectStoragePage(false);
 
         $constraints = $query->logicalAnd(
-            [
-                $query->equals('labelkey', $label),
-                $query->equals('sys_language_uid', $languageUid),
-                $query->equals('pid', $pid)
-            ]
+            $query->equals('labelkey', $label),
+            $query->equals('sys_language_uid', $languageUid),
+            $query->equals('pid', $pid)
         );
 
         $translation = $query->matching($constraints)->execute()->getFirst();
