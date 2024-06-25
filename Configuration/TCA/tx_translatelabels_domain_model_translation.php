@@ -122,7 +122,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 80,
-                'eval' => 'trim,uniqueInPid,nospace,required'
+                'eval' => 'trim,nospace,required'
             ],
         ],
         'translation' => [
