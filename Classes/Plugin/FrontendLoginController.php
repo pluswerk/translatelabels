@@ -17,7 +17,7 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
  *
  */
 
-class FrontendLoginController extends \TYPO3\CMS\Felogin\Controller\FrontendLoginController
+class FrontendLoginController extends \TYPO3\CMS\FrontendLogin\Controller\LoginController
 {
 
     protected $languageFilePath = '';
