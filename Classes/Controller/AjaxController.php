@@ -13,6 +13,7 @@ namespace Sitegeist\Translatelabels\Controller;
  */
 
 use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use function GuzzleHttp\json_decode;
 use Psr\Http\Message\ServerRequestInterface;
@@ -74,10 +75,13 @@ class AjaxController
             GeneralUtility::makeInstance(ConfigurationService::class);
         $this->adminPanelModuleConfiguration = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['adminpanel']['modules'] ?? [];
         $this->moduleLoader = $moduleLoader ?? GeneralUtility::makeInstance(ModuleLoader::class);
-        $this->languageService = GeneralUtility::makeInstance(LanguageService::class);
-        $this->languageService->init($this->getBackendUser()->uc['lang']);
-        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
-        $this->translationRepository = $objectManager->get(TranslationRepository::class);
+        $this->languageService = GeneralUtility::makeInstance(LanguageServiceFactory::class)->create($this->getBackendUser()->uc['lang'] ?? 0 ?: 'default');
+        if (class_exists(ObjectManager::class)) {
+            // legacy TYPO3 11 initialization
+            $this->translationRepository = GeneralUtility::makeInstance(ObjectManager::class)->get(TranslationRepository::class);
+        } else {
+            $this->translationRepository = GeneralUtility::makeInstance(TranslationRepository::class);
+        }
     }
 
     /**
@@ -124,7 +128,6 @@ class AjaxController
                             'labelkey' => $data->key,
                             'pid' => $data->storagePid,
                             'sys_language_uid' => 0,
-                            'cruser_id' => $backendUserId
                         ]);
                     } else {
                         $uidOfTranslationInDefaultLanguage = $translationInDefaultLanguage['uid'];
@@ -142,7 +145,6 @@ class AjaxController
                     'l10n_parent' => $uidOfTranslationInDefaultLanguage,
                     'tstamp' => time(),
                     'crdate' => time(),
-                    'cruser_id' => $backendUserId
                 ]);
 
                 // no translation record found => create one

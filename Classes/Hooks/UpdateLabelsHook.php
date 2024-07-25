@@ -6,13 +6,8 @@ use Sitegeist\Translatelabels\Domain\Model\Translation;
 use Sitegeist\Translatelabels\Domain\Repository\TranslationRepository;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use Sitegeist\Translatelabels\Renderer\FrontendRenderer;
-use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
-use Sitegeist\Translatelabels\Exception\LabelReplaceException;
 use Sitegeist\Translatelabels\Utility\TranslationLabelUtility;
-use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 class UpdateLabelsHook
 {
